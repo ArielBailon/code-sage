@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 
 import anthropic
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
@@ -27,7 +27,13 @@ class LLMClient:
         self.model_name = model_name
         self._client = client or anthropic.AsyncAnthropic(api_key=api_key)
 
-    async def stream_explanation(self, code: str, question: str) -> AsyncIterator[str]:
+    async def stream_explanation(
+        self,
+        code: str,
+        question: str,
+        *,
+        on_usage: Callable[[anthropic.types.Usage], None] | None = None,
+    ) -> AsyncIterator[str]:
         prompt = PROMPT_V1.format(code=code, question=question)
         yielded_any = False
 
@@ -49,4 +55,7 @@ class LLMClient:
                     async for text in stream.text_stream:
                         yielded_any = True
                         yield text
+                    if on_usage is not None:
+                        message = await stream.get_final_message()
+                        on_usage(message.usage)
                 return

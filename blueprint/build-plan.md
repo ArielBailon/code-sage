@@ -8,7 +8,7 @@
       (resumen, complejidad, posibles_bugs, sugerencia) al cerrar el stream
 - [x] 3. **Rate limiting y retries con backoff exponencial** - manejo de
       errores 429/5xx del proveedor LLM con reintentos automáticos
-- [ ] 4. **Tracking de costo por request** - cálculo de tokens in/out ×
+- [x] 4. **Tracking de costo por request** - cálculo de tokens in/out ×
       precio del modelo, expuesto en la respuesta o en logs
 - [ ] 5. **Prompts versionados (v1-v3) con changelog** - tres iteraciones
       del prompt base con CHANGELOG.md explicando el motivo de cada cambio

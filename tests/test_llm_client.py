@@ -194,3 +194,82 @@ async def test_stream_explanation_does_not_retry_non_retryable_error():
             pass
 
     assert len(calls) == 1
+
+
+class _FakeUsage:
+    def __init__(self, input_tokens: int, output_tokens: int) -> None:
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+
+class _FakeFinalMessage:
+    def __init__(self, usage: _FakeUsage) -> None:
+        self.usage = usage
+
+
+class _UsageStream:
+    def __init__(self, chunks: list[str], usage: _FakeUsage) -> None:
+        async def _gen():
+            for chunk in chunks:
+                yield chunk
+
+        self.text_stream = _gen()
+        self._usage = usage
+
+    async def __aenter__(self) -> "_UsageStream":
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> bool:
+        return False
+
+    async def get_final_message(self) -> _FakeFinalMessage:
+        return _FakeFinalMessage(self._usage)
+
+
+class _UsageMessages:
+    def __init__(self, chunks: list[str], usage: _FakeUsage, calls: list[dict]) -> None:
+        self._chunks = chunks
+        self._usage = usage
+        self._calls = calls
+
+    def stream(self, **kwargs: object) -> _UsageStream:
+        self._calls.append(kwargs)
+        return _UsageStream(self._chunks, self._usage)
+
+
+class _UsageAnthropicClient:
+    def __init__(self, chunks: list[str], usage: _FakeUsage, calls: list[dict]) -> None:
+        self.messages = _UsageMessages(chunks, usage, calls)
+
+
+@pytest.mark.anyio
+async def test_stream_explanation_reports_usage_after_chunks():
+    calls: list[dict] = []
+    usage = _FakeUsage(input_tokens=123, output_tokens=45)
+    fake_client = _UsageAnthropicClient(chunks=["Hola", " mundo"], usage=usage, calls=calls)
+    client = LLMClient(model_name="test-model", client=fake_client)
+
+    received_usage: list[object] = []
+    chunks = [
+        c
+        async for c in client.stream_explanation(
+            "def f(): pass", "que hace?", on_usage=received_usage.append
+        )
+    ]
+
+    assert chunks == ["Hola", " mundo"]
+    assert len(received_usage) == 1
+    assert received_usage[0].input_tokens == 123
+    assert received_usage[0].output_tokens == 45
+
+
+@pytest.mark.anyio
+async def test_stream_explanation_without_on_usage_is_unaffected():
+    calls: list[dict] = []
+    usage = _FakeUsage(input_tokens=1, output_tokens=1)
+    fake_client = _UsageAnthropicClient(chunks=["Hola"], usage=usage, calls=calls)
+    client = LLMClient(model_name="test-model", client=fake_client)
+
+    chunks = [c async for c in client.stream_explanation("def f(): pass", "que hace?")]
+
+    assert chunks == ["Hola"]
