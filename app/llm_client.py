@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator, Callable
 import anthropic
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
 
-from app.prompts.v1 import PROMPT_V1
+from app.prompts import get_prompt
 
 MAX_ATTEMPTS = 4
 
@@ -22,9 +22,12 @@ class LLMClient:
         api_key: str | None = None,
         model_name: str | None = None,
         client: anthropic.AsyncAnthropic | None = None,
+        prompt_version: str = "v1",
     ) -> None:
         self.api_key = api_key
         self.model_name = model_name
+        self.prompt_version = prompt_version
+        self._prompt_template = get_prompt(prompt_version)
         self._client = client or anthropic.AsyncAnthropic(api_key=api_key)
 
     async def stream_explanation(
@@ -34,7 +37,7 @@ class LLMClient:
         *,
         on_usage: Callable[[anthropic.types.Usage], None] | None = None,
     ) -> AsyncIterator[str]:
-        prompt = PROMPT_V1.format(code=code, question=question)
+        prompt = self._prompt_template.format(code=code, question=question)
         yielded_any = False
 
         def _should_retry(exc: BaseException) -> bool:

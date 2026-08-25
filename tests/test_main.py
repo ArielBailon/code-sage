@@ -136,6 +136,25 @@ def test_explain_emits_cost_event_after_done(monkeypatch):
     }
 
 
+def test_explain_cost_event_reflects_configured_prompt_version(monkeypatch):
+    monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_with_usage)
+    monkeypatch.setattr(main.llm_client, "prompt_version", "v2")
+
+    response = client.post(
+        "/explain",
+        json={"code": "def f(nums): return sum(nums)", "question": "que hace?"},
+    )
+
+    assert response.status_code == 200
+    cost_line = next(
+        line
+        for line in response.text.splitlines()
+        if line.startswith("data: ") and '"tokens_in"' in line
+    )
+    cost_payload = json.loads(cost_line.removeprefix("data: "))
+    assert cost_payload["prompt_version"] == "v2"
+
+
 def test_explain_skips_cost_event_for_unrecognized_model(monkeypatch):
     monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_with_usage)
     monkeypatch.setattr(main.llm_client, "model_name", "not-a-real-model")

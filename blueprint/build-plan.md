@@ -10,5 +10,5 @@
       errores 429/5xx del proveedor LLM con reintentos automáticos
 - [x] 4. **Tracking de costo por request** - cálculo de tokens in/out ×
       precio del modelo, expuesto en la respuesta o en logs
-- [ ] 5. **Prompts versionados (v1-v3) con changelog** - tres iteraciones
+- [x] 5. **Prompts versionados (v1-v3) con changelog** - tres iteraciones
       del prompt base con CHANGELOG.md explicando el motivo de cada cambio

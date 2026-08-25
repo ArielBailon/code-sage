@@ -67,6 +67,24 @@ async def test_stream_explanation_formats_prompt_and_uses_model():
     assert "que hace?" in prompt
 
 
+@pytest.mark.anyio
+async def test_stream_explanation_uses_selected_prompt_version():
+    calls: list[dict] = []
+    fake_client = _FakeAnthropicClient([], calls)
+    client = LLMClient(model_name="test-model", client=fake_client, prompt_version="v2")
+
+    [c async for c in client.stream_explanation("def f(): pass", "que hace?")]
+
+    prompt = calls[0]["messages"][0]["content"]
+    assert "Example of the exact expected output" in prompt
+    assert "Never skip a field" not in prompt
+
+
+def test_llm_client_rejects_unknown_prompt_version_at_construction():
+    with pytest.raises(ValueError):
+        LLMClient(model_name="test-model", client=_FakeAnthropicClient([], []), prompt_version="v4")
+
+
 class _FlakyStream:
     def __init__(self, attempt: int, fail_times: int, chunks: list[str]) -> None:
         self._attempt = attempt

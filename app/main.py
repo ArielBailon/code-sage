@@ -23,10 +23,8 @@ app = FastAPI(title="codesage-service")
 llm_client = LLMClient(
     api_key=os.getenv("ANTHROPIC_API_KEY"),
     model_name=os.getenv("MODEL_NAME", "claude-sonnet-5"),
+    prompt_version=os.getenv("PROMPT_VERSION", "v1"),
 )
-
-# Only v1 exists so far; feature 5 (prompt versioning) makes this dynamic.
-PROMPT_VERSION = "v1"
 
 
 @app.get("/health")
@@ -62,7 +60,7 @@ async def _explain_event_stream(code: str, question: str) -> AsyncIterator[str]:
                     cost=calculate_cost(
                         usage.input_tokens, usage.output_tokens, llm_client.model_name
                     ),
-                    prompt_version=PROMPT_VERSION,
+                    prompt_version=llm_client.prompt_version,
                 )
             except ValueError:
                 logger.warning(
