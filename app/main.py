@@ -5,9 +5,11 @@ from collections.abc import AsyncIterator
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 
 from app.llm_client import LLMClient
 from app.models import ExplainRequest
+from app.response_parser import FieldStreamParser
 
 load_dotenv()
 
@@ -25,8 +27,17 @@ async def health() -> dict[str, str]:
 
 
 async def _explain_event_stream(code: str, question: str) -> AsyncIterator[str]:
-    async for chunk in llm_client.stream_explanation(code, question):
-        yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+    parser = FieldStreamParser()
+    try:
+        async for chunk in llm_client.stream_explanation(code, question):
+            for name, value in parser.feed(chunk):
+                yield f"event: {name}\ndata: {json.dumps(value)}\n\n"
+        for name, value in parser.feed("\n"):
+            yield f"event: {name}\ndata: {json.dumps(value)}\n\n"
+        response = parser.finalize()
+        yield f"event: done\ndata: {response.model_dump_json()}\n\n"
+    except (json.JSONDecodeError, ValidationError) as exc:
+        yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
 
 
 @app.post("/explain")

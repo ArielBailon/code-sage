@@ -3,7 +3,7 @@
 - [x] 1. **Streaming SSE real** - endpoint /explain conectado al LLM real,
       streameando la respuesta por SSE (aún sin estructura validada, solo
       demostrar que el mecanismo de streaming funciona end to end)
-- [ ] 2. **Structured output con Pydantic** - la respuesta se emite como
+- [x] 2. **Structured output con Pydantic** - la respuesta se emite como
       eventos por campo y se valida contra el esquema ExplainResponse
       (resumen, complejidad, posibles_bugs, sugerencia) al cerrar el stream
 - [ ] 3. **Rate limiting y retries con backoff exponencial** - manejo de
