@@ -1,6 +1,6 @@
 # Build Plan
 
-- [ ] 1. **Streaming SSE real** - endpoint /explain conectado al LLM real,
+- [x] 1. **Streaming SSE real** - endpoint /explain conectado al LLM real,
       streameando la respuesta por SSE (aún sin estructura validada, solo
       demostrar que el mecanismo de streaming funciona end to end)
 - [ ] 2. **Structured output con Pydantic** - la respuesta se emite como
