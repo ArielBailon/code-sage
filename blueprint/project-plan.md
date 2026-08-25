@@ -1,42 +1,50 @@
 # Project Plan
 
-> One of the two planning docs you provide. Use as much detail as the project
-> needs, including rationale, constraints, examples, edge cases, and explicit
-> exclusions that should guide later feature work. Draft it directly, develop it
-> through any AI conversation, or optionally run `/discovery` for a guided deep
-> planning session. The content is always yours to direct. When it is filled in,
-> run `/overview` to generate the project overview from this plus `build-plan.md`.
-
 ## 1. Problem - What problem are we solving?
-
-Add the problem that this project solves and its main purpose
+Falta una forma rápida y explicable de entender un fragmento de código ajeno:
+qué hace, qué tan complejo es, dónde puede fallar, y cómo mejorarlo. CodeSage
+resuelve esto exponiendo esa explicación como un servicio, en streaming, con
+salida estructurada verificable (no texto libre).
 
 ## 2. Users - Who is this for?
-
-What kind of users are you focusing on? eg. new programmers, college students, single people
+Uso propio como pieza central del portafolio de transición a AI Engineer, y
+como demo técnica para entrevistas: demuestra manejo de streaming real,
+structured output, resiliencia ante fallos de API, control de costos y
+versionado de prompts en un entorno productivo.
 
 ## 3. Features - What does the MVP need?
-
-High level list of features. One line each, don't go into deep detail
+- Endpoint que recibe un fragmento de código + una pregunta
+- Respuesta en streaming real vía SSE (Server-Sent Events), no simulada
+- El streaming se estructura como eventos por campo (`event: resumen`,
+  `event: complejidad`, `event: posibles_bugs`, `event: sugerencia`), cada
+  uno validable individualmente; el objeto completo se valida con Pydantic
+  al cerrar el stream
+- Manejo de rate limits del proveedor LLM con reintentos y backoff exponencial
+- Cálculo de costo por request a partir de tokens de entrada/salida × precio
+  del modelo usado
+- Al menos 3 versiones de prompt (v1, v2, v3) con un changelog que explique
+  el motivo de cada cambio
 
 ## 4. Data - What are we storing?
-
-List of data that will be stored eg. users, products, stats
+No hay persistencia de usuarios ni historial en esta fase. Se registra en
+logs (o en la respuesta misma) el costo por request y la versión de prompt
+usada, para poder comparar versiones más adelante.
 
 ## 5. Tech - What stack are we using?
-
-The stack this project will use eg. Next.js, Neon Postgres, ShadCN UI, Claude Haiku for content generation
+Python, FastAPI, Pydantic para validación de esquemas, httpx o el SDK oficial
+del proveedor LLM para las llamadas, tenacity (o lógica manual) para
+retries/backoff, pytest para pruebas.
 
 ## 6. Monetize - How will this make money?
-
-Explain how you plan to make money. eg. Ads, memberships, etc
+No es un producto comercial en esta fase. Su valor es como pieza de
+portafolio (CodeSage) y como práctica aplicada del roadmap de AI Engineer.
 
 ## 7. UI/UX - How should this look and feel?
-
-Describe the look and feel. Add examples if you want
+No aplica interfaz visual: es un microservicio backend. La "experiencia" a
+optimizar es la del consumidor de la API — respuesta rápida en el primer
+byte (streaming), errores claros, y contrato JSON estable y predecible.
 
 ## 8. Deployment - Where and how will this ship?
-
-Target host if known, such as Render or Vercel. Include app type, build command,
-start command or output directory, env vars by name, database or storage needs,
-workers or cron jobs, health check path, and domain notes if you know them.
+Fuera de alcance para la Fase 1. El entregable se valida localmente
+(`uvicorn` + pruebas manuales y automatizadas). Deployment se planifica como
+fase posterior una vez cerrado este build plan.
