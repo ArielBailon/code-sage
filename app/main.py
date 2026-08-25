@@ -2,6 +2,7 @@ import json
 import os
 from collections.abc import AsyncIterator
 
+import anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -38,6 +39,11 @@ async def _explain_event_stream(code: str, question: str) -> AsyncIterator[str]:
         yield f"event: done\ndata: {response.model_dump_json()}\n\n"
     except (json.JSONDecodeError, ValidationError) as exc:
         yield f"event: error\ndata: {json.dumps({'error': str(exc)})}\n\n"
+    except anthropic.AnthropicError:
+        yield (
+            "event: error\ndata: "
+            f"{json.dumps({'error': 'LLM provider request failed'})}\n\n"
+        )
 
 
 @app.post("/explain")

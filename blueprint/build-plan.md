@@ -6,7 +6,7 @@
 - [x] 2. **Structured output con Pydantic** - la respuesta se emite como
       eventos por campo y se valida contra el esquema ExplainResponse
       (resumen, complejidad, posibles_bugs, sugerencia) al cerrar el stream
-- [ ] 3. **Rate limiting y retries con backoff exponencial** - manejo de
+- [x] 3. **Rate limiting y retries con backoff exponencial** - manejo de
       errores 429/5xx del proveedor LLM con reintentos automáticos
 - [ ] 4. **Tracking de costo por request** - cálculo de tokens in/out ×
       precio del modelo, expuesto en la respuesta o en logs

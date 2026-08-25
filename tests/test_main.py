@@ -1,10 +1,18 @@
 import json
 
+import anthropic
+import httpx
 from fastapi.testclient import TestClient
 
 import app.main as main
 
 client = TestClient(main.app)
+
+
+def _status_error(status_code: int) -> anthropic.APIStatusError:
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(status_code=status_code, request=request)
+    return anthropic.APIStatusError("boom", response=response, body=None)
 
 
 async def _fake_stream_explanation(code: str, question: str):
@@ -59,3 +67,22 @@ def test_explain_emits_error_event_on_incomplete_response(monkeypatch):
 
     assert response.status_code == 200
     assert "event: error" in response.text
+
+
+async def _fake_stream_provider_failure(code: str, question: str):
+    if False:
+        yield ""
+    raise _status_error(503)
+
+
+def test_explain_emits_error_event_on_exhausted_provider_retries(monkeypatch):
+    monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_provider_failure)
+
+    response = client.post(
+        "/explain",
+        json={"code": "def f(): pass", "question": "que hace?"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert 'event: error\ndata: {"error": "LLM provider request failed"}' in response.text
