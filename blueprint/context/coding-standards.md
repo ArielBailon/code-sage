@@ -1,86 +1,52 @@
 # Coding Standards
 
-> Your conventions. Edit these once to match your stack. The defaults below
-> assume Next.js + TypeScript + Tailwind + Prisma; change or trim anything that
-> doesn't fit your project.
->
-> Run `/onboard` after installing the Blueprint. It tunes this file to the real
-> project stack, along with `AGENTS.md`, `CLAUDE.md` when present,
-> `ai-interaction.md`, `.gitignore`, and README placement. Review the result
-> before `/overview`.
+> Your conventions, tuned to this project by `/onboard`. Review and edit
+> directly as the stack evolves.
 
-## TypeScript
+## Python
 
-- Strict mode enabled
-- No `any` types - use proper typing or `unknown`
-- Define interfaces for all props, API responses, and data models
-- Use type inference where obvious, explicit types where helpful
+- Type hints on all function signatures; no bare `Any` unless truly dynamic
+- Pydantic models for every request/response shape crossing an API boundary
+  (see `app/models.py`) - no raw dicts in or out of endpoints
+- No typechecker configured yet (mypy/pyright); add via `/ci` if wanted
 
-## React
+## FastAPI
 
-- Functional components only (no class components)
-- Use hooks for state and side effects
-- Keep components focused - one job per component
-- Extract reusable logic into custom hooks
-
-## Next.js
-
-- Server components by default
-- Only use `'use client'` when needed (interactivity, hooks, browser APIs)
-- Use Server Actions for form submissions and simple mutations
-- Use API routes when you need:
-  - Webhooks (Clerk, GitHub, etc.)
-  - File uploads with progress tracking
-  - Long-running operations
-  - Specific HTTP status codes or headers
-  - Endpoints for future mobile/CLI clients
-  - Third-party integrations
-- Otherwise, fetch data directly in server components
-- Dynamic routes for item/collection pages
+- Async endpoints (`async def`) by default
+- Use `StreamingResponse` with `text/event-stream` for streaming/SSE endpoints,
+  not a single buffered response
+- All LLM calls go through `app/llm_client.py` - the single entry point where
+  retries and backoff live, never call the LLM SDK directly from an endpoint
+- Raise `HTTPException` for client-facing errors; don't leak raw exceptions
 
 ## File Organization
 
-- Components: `src/components/[feature]/ComponentName.tsx`
-- Pages: `src/app/[route]/page.tsx`
-- Server Actions: `src/actions/[feature].ts`
-- Types: `src/types/[feature].ts`
-- Lib/Utils: `src/lib/[utility].ts`
+- App code: `app/`
+- Endpoints: `app/main.py` (split into `app/routers/` if it grows past a
+  handful of routes)
+- Request/response models: `app/models.py`
+- Prompts: `app/prompts/` - versioned (`v1.py`, `v2.py`, ...) with changes
+  logged in `app/prompts/CHANGELOG.md`
+- Tests: `tests/`, one `test_*.py` per module under test
 
 ## Naming
 
-- Components: PascalCase (`ItemCard.tsx`)
-- Files: Match component name or kebab-case
-- Functions: camelCase
+- Modules and files: snake_case
+- Functions and variables: snake_case
+- Classes (including Pydantic models): PascalCase
 - Constants: SCREAMING_SNAKE_CASE
-- Types/Interfaces: PascalCase (no prefix)
 
-## Styling
+## Data & Storage
 
-- Tailwind CSS for all styling
-- Tailwind v4: CSS-first config (`@theme` in `globals.css`), no `tailwind.config.js`
-- Use shadcn/ui components where applicable
-- No inline styles
-- Dark mode first, light mode as option
-
-## Database
-
-- Use Prisma ORM for all database operations
-- Always use `prisma migrate dev` for schema changes (not `db push`)
-- Run `prisma migrate status` before committing to verify migrations are in sync
-- Production deployments must run `prisma migrate deploy` before the app starts
-
-## Data Fetching
-
-- Server components fetch directly with Prisma
-- Client components use Server Actions
-- Validate all inputs with Zod
-- Scope every user-owned query by the authenticated Clerk user id (`clerkUserId`); never trust a client-supplied user id
+No database yet. Add this section (ORM, migrations, query scoping) when
+persistence is introduced.
 
 ## Error Handling
 
-- Use try/catch in Server Actions
-- Return `{ success, data, error }` pattern from actions
-- Display user-friendly error messages via toast
+- Use try/except in `app/llm_client.py` and endpoints for calls that can fail
+  (LLM API, network)
+- Raise `HTTPException` with a client-appropriate status code and message from
+  endpoints; don't let raw SDK exceptions reach the client
 
 ## Testing
 
@@ -125,26 +91,21 @@ of the switch; the skills and `ai-interaction.md` only point back here.
 - Run them via the project's test command (see Commands in `AGENTS.md`), not a
   hardcoded tool name.
 
-Stack binding (swap for yours): a TypeScript app uses Vitest, `vi.mock()` for
-external dependencies (Prisma, Clerk, etc.), and `vi.useFakeTimers()` for
-time-dependent logic; a Python app would use pytest; a Go app `go test`.
+Stack binding: this project uses pytest (`tests/test_*.py`), with
+`unittest.mock` / `monkeypatch` for external dependencies (the Anthropic SDK,
+`httpx`) and `pytest`'s `tmp_path`/fixtures where needed. The test command is
+declared in `AGENTS.md` (`pytest`), so the test gate above is active: a step
+that adds logic (parsers, cost calculation, retry logic, response validation)
+ships a passing test in the same diff.
 
-## Browser Verification
+## API Verification
 
-For UI and integration behavior, prefer real browser evidence over reading the
-code and assuming it works.
-
-- If Playwright is already installed, or the Commands section of `AGENTS.md`
-  declares a Playwright script, use Playwright for browser checks, screenshots,
-  console-error checks, and user-flow verification.
-- If Playwright is not installed, do not add it silently in the middle of an
-  unrelated feature. Use the available dev server, browser screenshots, build
-  output, API output, or manual verification evidence instead.
-- Add Playwright only when the user asks for it, or when the current spec is
-  explicitly about setting up browser automation.
-- Browser evidence is especially important for flows that click, type, submit,
-  navigate, download files, render complex layouts, or depend on client-side
-  state.
+This is an API-only service, no browser UI. Verify endpoint behavior with real
+HTTP calls against the running dev server (`curl`, `httpx`, or the FastAPI
+`TestClient` in tests) rather than reading the code and assuming it works.
+Streaming endpoints (`/explain`) should be checked for the real
+`text/event-stream` content type and multiple discrete SSE events, not just a
+200 status.
 
 ## Code Quality
 

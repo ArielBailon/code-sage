@@ -114,13 +114,12 @@ checks do not make the Blueprint unusable.
 
 ## Commands
 
-For a standard Next.js project. Change or remove if you're using something else.
+For codesage-service (Python 3.11+ / FastAPI).
 
-- Dev server: `npm run dev` (http://localhost:3000)
-- Build: `npm run build`
-- Production server: `npm run start`
-- Lint: `npm run lint`
+- Install deps: `pip install -e ".[dev]"`
+- Dev server: `uvicorn app.main:app --reload` (http://localhost:8000)
+- Test: `pytest`
 
-Testing is opt-in. If this project does not already have a unit test runner, run
-`/tests` or `$tests` to add one and update this section with the real test
-commands.
+No build step (interpreted, not compiled). No lint, format, or typecheck
+configured yet; no combined `Verify` command exists. Run `/ci` or `$ci` to set
+one up along with automatic GitHub checks.
