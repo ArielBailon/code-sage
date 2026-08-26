@@ -27,8 +27,11 @@ uvicorn app.main:app --reload
 
 - `GET /health` - healthcheck
 - `POST /explain` - recibe `{code, question}` y responde vía SSE
-  (`text/event-stream`). Por ahora emite eventos con datos hardcodeados
-  para validar el mecanismo de streaming.
+  (`text/event-stream`), streameando la respuesta real del LLM. Emite un
+  evento por campo (`resumen`, `complejidad`, `posibles_bugs`, `sugerencia`),
+  validado como `ExplainResponse` al cerrar el stream (`event: done`), seguido
+  de un evento `cost` con el costo calculado del request. Reintenta
+  automáticamente con backoff exponencial ante errores 429/5xx del proveedor.
 
 ## Tests
 
@@ -38,7 +41,9 @@ pytest
 
 ## Estado actual
 
-Este es un scaffold inicial. Aún no implementado: llamada real al LLM,
-retries/backoff, cálculo de costo real, y prompts v2/v3. Se construyen
-después vía el workflow de [AI Blueprint](https://ai-blueprint.dev) con
-`/feature`.
+Las cinco features del build plan están implementadas: streaming SSE real
+contra el LLM, salida estructurada validada por campo con Pydantic, retries
+con backoff exponencial, tracking de costo por request, y tres versiones de
+prompt (v1-v3, seleccionable con la variable de entorno `PROMPT_VERSION`; ver
+`app/prompts/CHANGELOG.md`). Se construyó vía el workflow de
+[AI Blueprint](https://ai-blueprint.dev) con `/feature`.
