@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ExplainRequest(BaseModel):
-    code: str
-    question: str
+    code: str = Field(max_length=20_000)
+    question: str = Field(max_length=2_000)
 
 
 class ExplainResponse(BaseModel):

@@ -132,7 +132,7 @@ def test_explain_emits_cost_event_after_done(monkeypatch):
         "cost": pytest.approx(
             calculate_cost(1000, 500, main.llm_client.model_name)
         ),
-        "prompt_version": "v1",
+        "prompt_version": main.llm_client.prompt_version,
     }
 
 
@@ -167,3 +167,36 @@ def test_explain_skips_cost_event_for_unrecognized_model(monkeypatch):
     assert response.status_code == 200
     assert "event: done" in response.text
     assert "event: cost" not in response.text
+
+
+def test_explain_rejects_oversized_code(monkeypatch):
+    monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_explanation)
+
+    response = client.post(
+        "/explain",
+        json={"code": "x" * 20_001, "question": "que hace?"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_explain_rejects_oversized_question(monkeypatch):
+    monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_explanation)
+
+    response = client.post(
+        "/explain",
+        json={"code": "def f(): pass", "question": "x" * 2_001},
+    )
+
+    assert response.status_code == 422
+
+
+def test_explain_accepts_code_and_question_at_the_length_limit(monkeypatch):
+    monkeypatch.setattr(main.llm_client, "stream_explanation", _fake_stream_explanation)
+
+    response = client.post(
+        "/explain",
+        json={"code": "x" * 20_000, "question": "x" * 2_000},
+    )
+
+    assert response.status_code == 200

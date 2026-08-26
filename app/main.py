@@ -23,7 +23,7 @@ app = FastAPI(title="codesage-service")
 llm_client = LLMClient(
     api_key=os.getenv("ANTHROPIC_API_KEY"),
     model_name=os.getenv("MODEL_NAME", "claude-sonnet-5"),
-    prompt_version=os.getenv("PROMPT_VERSION", "v1"),
+    prompt_version=os.getenv("PROMPT_VERSION", "v3"),
 )
 
 
