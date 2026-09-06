@@ -39,11 +39,27 @@ uvicorn app.main:app --reload
 pytest
 ```
 
-## Estado actual
+## Roadmap
 
-Las cinco features del build plan están implementadas: streaming SSE real
-contra el LLM, salida estructurada validada por campo con Pydantic, retries
-con backoff exponencial, tracking de costo por request, y tres versiones de
-prompt (v1-v3, seleccionable con la variable de entorno `PROMPT_VERSION`; ver
-`app/prompts/CHANGELOG.md`). Se construyó vía el workflow de
-[AI Blueprint](https://ai-blueprint.dev) con `/feature`.
+CodeSage es el proyecto central de un roadmap de transición a AI Engineer en
+4 fases. El detalle completo (checklist de estudio + entregable) vive en
+[`blueprint/roadmap.md`](blueprint/roadmap.md).
+
+| Fase | Foco | Estado |
+| --- | --- | --- |
+| 1 | Python + fundamentos de LLMs: streaming SSE, structured output, retries, costos, prompts versionados | Completa |
+| 2 | RAG end to end: chunking código/docs, hybrid search con pgvector, re-ranking, citación de fuente | En progreso |
+| 3 | Agentes + evals + observabilidad: tool use, suite de evals, Langfuse, prompt injection | Pendiente |
+| 4 | Producción: deploy en AWS con CI/CD, semantic caching, model routing | Pendiente |
+
+## Estado actual (Fase 1 - completa)
+
+Las cinco features del build plan de Fase 1 están implementadas: streaming
+SSE real contra el LLM, salida estructurada validada por campo con Pydantic,
+retries con backoff exponencial, tracking de costo por request, y tres
+versiones de prompt (v1-v3, seleccionable con la variable de entorno
+`PROMPT_VERSION`; ver `app/prompts/CHANGELOG.md`). Se construyó vía el
+workflow de [AI Blueprint](https://ai-blueprint.dev) con `/feature`.
+
+Fase 2 (RAG sobre un repositorio real) está en progreso; ver
+[`blueprint/build-plan.md`](blueprint/build-plan.md) para el detalle de items.

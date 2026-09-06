@@ -1,70 +1,91 @@
 # codesage-service - Project Overview
 
-> FastAPI microservice that explains a code snippet + question via real SSE streaming, with a Pydantic-validated structured response.
+> FastAPI microservice that explains a code snippet + question via real SSE streaming with a Pydantic-validated structured response, now extending into retrieval-augmented generation (RAG) over a real open source repository.
 
 ## Problem
 
 There's no fast, explainable way to understand an unfamiliar code snippet: what
 it does, how complex it is, where it might break, and how to improve it.
 CodeSage exposes that explanation as a service, streamed, with structured
-output that's verifiable rather than free-form text.
+output that's verifiable rather than free-form text. Phase 2 extends this to
+answering questions grounded in a real repository's code and docs, not just an
+isolated snippet.
 
 ## Users
 
 - **Portfolio reviewers / interviewers** - evaluate the project as a technical
   demo: real streaming, structured output, resilience to API failures, cost
-  control, and prompt versioning in a production-shaped setup.
+  control, prompt versioning, and (from Phase 2) a working RAG pipeline with
+  hybrid search, re-ranking, and source citation.
 - **The author** - uses it as the centerpiece of an AI Engineer transition
-  portfolio.
+  portfolio, built in phases (full roadmap in `blueprint/roadmap.md`).
 
 No access tiers; single-consumer API, no auth in this phase.
 
 ## Features
 
-1. **Streaming SSE real** - `/explain` connected to the real LLM, streaming the
-   response over SSE end to end (mechanism proven, not yet field-structured).
+**Phase 1 (complete, archived in `blueprint/history/features/`):**
+
+1. **Streaming SSE real** - `/explain` connected to the real LLM, streaming
+   the response over SSE end to end.
 2. **Structured output con Pydantic** - the streamed response is emitted as
-   per-field SSE events and validated as a whole against `ExplainResponse` when
-   the stream closes.
-3. **Rate limiting y retries con backoff exponencial** - automatic retries with
-   exponential backoff on provider 429/5xx errors.
-4. **Tracking de costo por request** - cost computed from input/output tokens x
-   model price, exposed in the response or logs.
-5. **Prompts versionados (v1-v3) con changelog** - three prompt iterations with
-   `app/prompts/CHANGELOG.md` explaining the reason for each change.
+   per-field SSE events and validated as a whole against `ExplainResponse`
+   when the stream closes.
+3. **Rate limiting y retries con backoff exponencial** - automatic retries
+   with exponential backoff on provider 429/5xx errors.
+4. **Tracking de costo por request** - cost computed from input/output tokens
+   x model price, exposed in the response or logs.
+5. **Prompts versionados (v1-v3) con changelog** - three prompt iterations
+   with `app/prompts/CHANGELOG.md` explaining the reason for each change.
+
+**Phase 2 (active - RAG end to end):**
+
+6. **Fallback entre proveedores de LLM** - if the active provider fails or
+   hits a non-recoverable rate limit, fall back automatically to the other
+   provider (OpenAI <-> Anthropic); carried over from Phase 1's original
+   deliverable, first item of Phase 2.
+7. **Ingesta y chunking especializado** - clone a real open source repo (5k+
+   lines of code + docs); chunk code by function/class and docs semantically,
+   documenting why the two need different strategies.
+8. **Hybrid search con pgvector** - retrieval combining semantic search
+   (pgvector) with keyword search (function name, file name).
+9. **Re-ranking de resultados** - reorder retrieval results before they're
+   passed to the LLM for generation.
+10. **Citación de fuente exacta** - every generated answer cites the file and
+    line it came from.
+11. **Caso documentado de "RAG que falló"** - a real retrieval/generation
+    failure, how it was diagnosed, and the fix applied.
+12. **Demo y post de cierre de Fase 2** - a deployed demo of the RAG pipeline
+    plus a writeup of the chunking decisions.
 
 ## Data model
 
-No user or history persistence in this phase. The API contract and the
-per-request log are the only concrete shapes.
+### Request cost log (Phase 1)
 
-### ExplainRequest
-
-- `code` (str) - the code snippet to explain
-- `question` (str) - the user's question about it
-
-### ExplainResponse
-
-- `resumen` (str) - summary of what the code does
-- `complejidad` (str) - complexity assessment
-- `posibles_bugs` (list[str]) - potential bugs or edge cases
-- `sugerencia` (str) - improvement suggestion
-
-> Streamed as one SSE event per field (`event: resumen`, `event: complejidad`,
-> `event: posibles_bugs`, `event: sugerencia`), each independently validatable;
-> the full object is validated against this schema when the stream closes.
-> Locked shape - feature 2 depends on it, already scaffolded in `app/models.py`.
-
-### Request cost log
-
-Not a database row - a log line (or response field) per request, so prompt
-versions can be compared later.
+Not a database row - a log line (or response field) per request.
 
 - `tokens_in` (int)
 - `tokens_out` (int)
 - `model` (str) - model used
 - `cost` (float) - `tokens_in`/`tokens_out` x model price
 - `prompt_version` (str) - which of v1/v2/v3 produced the response
+
+### Chunk (Phase 2)
+
+Persisted in Postgres with pgvector. One row per ingested chunk of the target
+repository.
+
+- `id` (uuid/int) - primary key
+- `source_path` (str) - file path within the ingested repo
+- `chunk_type` (str) - `code` or `doc`, drives which chunking strategy produced it
+- `start_line` / `end_line` (int) - exact source location, used for citation
+- `content` (str) - the chunked text
+- `embedding` (vector) - pgvector embedding of `content`
+- `symbol_name` (str, nullable) - function/class name, when `chunk_type` is `code`; used by keyword search
+
+> Locked shape - features 8, 9, and 10 all depend on `source_path` +
+> `start_line`/`end_line` being accurate for citation, and on `chunk_type` +
+> `symbol_name` for hybrid search.
 
 ## Tech stack
 
@@ -74,6 +95,8 @@ versions can be compared later.
 - **httpx / Anthropic SDK** - LLM provider calls
 - **tenacity** - retry/backoff logic for rate limits and transient failures
 - **pytest** - test suite (test gate is active - see `coding-standards.md`)
+- **Postgres + pgvector** (Phase 2) - vector store for ingested chunks and their embeddings
+- **Embedding model** (Phase 2) - generates vectors for chunked code and documentation
 
 ## Monetization
 
@@ -90,8 +113,22 @@ errors, and a stable, predictable JSON contract.
   fields out
 - `GET /health` - healthcheck
 
+> TODO - Phase 2's ingestion/retrieval endpoints (querying the ingested
+> repository) are not yet named; define them when `/feature` specs item 6.
+
 ## Deployment
 
-> TODO - out of scope for Phase 1. Validated locally (`uvicorn` + automated and
-> manual tests). Deployment is planned as a later phase once this build plan is
-> closed.
+Out of scope through Phase 3. Phase 1 and Phase 2 are validated locally
+(`uvicorn` + local Postgres/pgvector + automated and manual tests). Phase 2's
+deliverable includes a deployed demo of the RAG pipeline (not production
+infrastructure). Formal deployment to AWS with CI/CD is Phase 4's deliverable
+(see `blueprint/roadmap.md`).
+
+> TODO - Phase 4 owns the real deployment target, build/start commands, env
+> vars, and health checks for production.
+
+## Open questions
+
+> None currently blocking. Phase 1's original deliverable also listed a
+> provider fallback (OpenAI <-> Anthropic) that was deferred rather than
+> shipped; it is now feature 6 above, the first item of Phase 2.
