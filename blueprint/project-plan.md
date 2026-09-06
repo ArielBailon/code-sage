@@ -33,8 +33,6 @@ versionado de prompts en un entorno productivo.
   el motivo de cada cambio
 
 **Fase 2 (activa) - RAG sobre un repositorio real:**
-- Fallback funcional entre al menos dos proveedores de LLM (OpenAI <-> Anthropic)
-  ante fallos o rate limits; heredado de Fase 1, primer item de esta fase
 - Ingesta de un repositorio open source (5k+ líneas de código + documentación)
 - Chunking especializado: por función/clase para código, semántico para
   documentación, con la diferencia de estrategia documentada

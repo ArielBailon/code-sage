@@ -69,7 +69,7 @@ resumen, complejidad, posibles bugs, sugerencia).
 - [x] Streaming real vía SSE (no simulado)
 - [x] Structured output validado con Pydantic
 - [x] Manejo de rate limits y retries con backoff exponencial
-- [ ] Fallback funcional entre al menos dos proveedores de LLM (OpenAI <-> Anthropic) - diferido, no bloqueó el cierre de fase; movido al inicio de Fase 2 (ver Entregable Fase 2, primer item)
+- [ ] Fallback funcional entre al menos dos proveedores de LLM (OpenAI <-> Anthropic) - diferido, no bloqueó el cierre de fase; movido a Fase 5 (extra), al final del roadmap
 - [x] Tracking de costo por request (tokens in/out x precio del modelo)
 - [x] Al menos 3 prompts versionados (v1, v2, v3) con un changelog de por qué cambiaste cada uno
 
@@ -105,7 +105,6 @@ resumen, complejidad, posibles bugs, sugerencia).
 Extiende CodeSage con ingesta y retrieval sobre un repositorio open source
 real (clona uno con al menos 5k líneas de código + documentación).
 
-- [ ] Fallback funcional entre al menos dos proveedores de LLM (OpenAI <-> Anthropic) si uno falla o da rate limit; heredado de Fase 1, primer item a construir en Fase 2
 - [ ] Chunking específico para código (por función/clase, no por tamaño fijo) vs. chunking de la documentación (semántico); implementa ambos y documenta la diferencia
 - [ ] Hybrid search: combina búsqueda semántica (pgvector) con búsqueda por keyword (nombre de función, nombre de archivo)
 - [ ] Re-ranking de resultados antes de pasarlos al LLM
@@ -200,6 +199,29 @@ CodeSage desplegado en AWS con CI/CD, más:
 - [ ] Semantic caching activo (mide y reporta el % de requests que evitan llamar al LLM)
 - [ ] Model routing: un modelo pequeño/barato para clasificación simple, uno grande para generación compleja, con la lógica de decisión documentada
 - [ ] Portafolio completo publicado, con CodeSage como pieza central
+
+---
+
+## Fase 5 (extra) - Fallback multi-proveedor de LLM - Pendiente
+
+No es parte de las 4 fases originales del roadmap. Se separó del entregable
+de Fase 1 porque integrar un segundo proveedor completo (streaming + retries
+propios, semántica de usage distinta) casi duplica el trabajo ya hecho para
+Anthropic; se retoma al final, con el resto del roadmap ya cerrado.
+
+### Entregable Fase 5
+
+- [ ] Cliente OpenAI con streaming y retries: módulo que replica la interfaz
+      del cliente Anthropic existente (stream de texto + reporte de usage),
+      con el mismo manejo de retries/backoff en 429/5xx; incluye el pricing
+      de los modelos OpenAI en el cálculo de costo
+- [ ] Fallback automático entre proveedores: si el proveedor primario agota
+      reintentos sin haber emitido ningún chunk todavía, cae automáticamente
+      al proveedor secundario (OpenAI <-> Anthropic) para ese mismo request
+- [ ] Selección de proveedor primario/secundario configurable por variables
+      de entorno
+- [ ] Prueba end-to-end que fuerza el fallo del proveedor primario y verifica
+      que la respuesta se completa vía el secundario
 
 ---
 

@@ -40,23 +40,30 @@ No access tiers; single-consumer API, no auth in this phase.
 
 **Phase 2 (active - RAG end to end):**
 
-6. **Fallback entre proveedores de LLM** - if the active provider fails or
-   hits a non-recoverable rate limit, fall back automatically to the other
-   provider (OpenAI <-> Anthropic); carried over from Phase 1's original
-   deliverable, first item of Phase 2.
-7. **Ingesta y chunking especializado** - clone a real open source repo (5k+
+6. **Ingesta y chunking especializado** - clone a real open source repo (5k+
    lines of code + docs); chunk code by function/class and docs semantically,
    documenting why the two need different strategies.
-8. **Hybrid search con pgvector** - retrieval combining semantic search
+7. **Hybrid search con pgvector** - retrieval combining semantic search
    (pgvector) with keyword search (function name, file name).
-9. **Re-ranking de resultados** - reorder retrieval results before they're
+8. **Re-ranking de resultados** - reorder retrieval results before they're
    passed to the LLM for generation.
-10. **Citación de fuente exacta** - every generated answer cites the file and
-    line it came from.
-11. **Caso documentado de "RAG que falló"** - a real retrieval/generation
+9. **Citación de fuente exacta** - every generated answer cites the file and
+   line it came from.
+10. **Caso documentado de "RAG que falló"** - a real retrieval/generation
     failure, how it was diagnosed, and the fix applied.
-12. **Demo y post de cierre de Fase 2** - a deployed demo of the RAG pipeline
+11. **Demo y post de cierre de Fase 2** - a deployed demo of the RAG pipeline
     plus a writeup of the chunking decisions.
+
+**Phase 5 (extra, after Phase 4 - not yet started):**
+
+12. **Cliente OpenAI con streaming y retries** - a second provider client
+    mirroring the Anthropic client's interface (streaming + usage reporting)
+    with the same retry/backoff handling, plus OpenAI pricing in cost
+    calculation.
+13. **Fallback automático entre proveedores** - if the primary provider
+    exhausts retries without having yielded any chunk yet, fall back
+    automatically to the secondary provider (OpenAI <-> Anthropic) for that
+    same request; provider selection configurable via env vars.
 
 ## Data model
 
@@ -83,7 +90,7 @@ repository.
 - `embedding` (vector) - pgvector embedding of `content`
 - `symbol_name` (str, nullable) - function/class name, when `chunk_type` is `code`; used by keyword search
 
-> Locked shape - features 8, 9, and 10 all depend on `source_path` +
+> Locked shape - features 7, 8, and 9 all depend on `source_path` +
 > `start_line`/`end_line` being accurate for citation, and on `chunk_type` +
 > `symbol_name` for hybrid search.
 
@@ -131,4 +138,4 @@ infrastructure). Formal deployment to AWS with CI/CD is Phase 4's deliverable
 
 > None currently blocking. Phase 1's original deliverable also listed a
 > provider fallback (OpenAI <-> Anthropic) that was deferred rather than
-> shipped; it is now feature 6 above, the first item of Phase 2.
+> shipped; it now lives as Phase 5 (features 12-13 above), after Phase 4.
