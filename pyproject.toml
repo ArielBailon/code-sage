@@ -11,6 +11,8 @@ dependencies = [
     "anthropic",
     "tenacity",
     "python-dotenv",
+    "asyncpg",
+    "pgvector",
 ]
 
 [project.optional-dependencies]

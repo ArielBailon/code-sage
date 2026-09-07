@@ -19,6 +19,14 @@
       source real (5k+ líneas de código + documentación) e implementa
       chunking por función/clase para código vs. chunking semántico para
       documentación, documentando la diferencia de estrategia
+  - [x] 6a. **Infra de ingesta y pgvector** - Postgres + pgvector, tabla
+        `chunks`, walker que clasifica archivos de código vs. documentación
+        en un repo local, y persistencia mínima con un chunker placeholder
+        (archivo completo) para validar el pipeline de punta a punta
+  - [ ] 6b. **Chunking especializado** - reemplaza el placeholder por los
+        dos chunkers reales: AST de Python por función/clase para código, y
+        chunking semántico por secciones para documentación; documenta la
+        diferencia de estrategia
 - [ ] 7. **Hybrid search con pgvector** - retrieval que combina búsqueda
       semántica (pgvector) con búsqueda por keyword (nombre de función,
       nombre de archivo)

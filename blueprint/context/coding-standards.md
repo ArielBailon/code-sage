@@ -38,8 +38,16 @@
 
 ## Data & Storage
 
-No database yet. Add this section (ORM, migrations, query scoping) when
-persistence is introduced.
+- Postgres with the pgvector extension, for the `chunks` table used by the
+  RAG ingestion pipeline (Phase 2 onward)
+- No ORM: raw SQL via `asyncpg`, with a connection pool in
+  `app/db/connection.py` (`get_pool()` / `close_pool()`)
+- Schema lives in `app/db/schema.sql` (plain SQL, no migration tool); apply
+  it manually against the target database when it changes
+- Local dev database: `docker-compose.yml` (`pgvector/pgvector` Postgres
+  image); connection string via `DATABASE_URL` in `.env`
+- Single-consumer service, no auth or multi-tenant scoping yet; revisit this
+  note if that changes
 
 ## Error Handling
 
