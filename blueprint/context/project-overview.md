@@ -1,5 +1,7 @@
 # codesage-service - Project Overview
 
+<!-- blueprint:source-hash 3d1e44a722b34c0e47fa511f70cedf3b70cae86fff1f990a379d79939a1a2bd9 -->
+
 > FastAPI microservice that explains a code snippet + question via real SSE streaming with a Pydantic-validated structured response, now extending into retrieval-augmented generation (RAG) over a real open source repository.
 
 ## Problem
