@@ -59,6 +59,13 @@ Follow build steps in order. Build only what the spec says. If a step requires a
 unresolved product decision, unsafe action, missing prerequisite, or material
 scope expansion, stop and revise the spec instead of improvising.
 
+Add an abstraction, dependency, service, configuration surface, compatibility
+layer, or security mechanism only when the approved spec or an established
+repository requirement needs it now. Prefer existing code, the standard library,
+native platform features, and installed dependencies. If the simplest complete
+implementation conflicts with the spec, stop and revise the spec instead of
+silently building a larger design.
+
 For each step:
 
 1. Make the smallest coherent change that satisfies its `Done when`.
@@ -99,6 +106,13 @@ classification of each required state. Catch only known expected errors at a
 boundary; unexpected failures must reach the unexpected-error path. Fix any
 missing or contradicted contract before marking the spec verified.
 
+Run a proportionality check before final verification: every new abstraction,
+dependency, service, configuration surface, compatibility layer, and security
+mechanism must trace to the approved spec or an established repository
+requirement. Remove speculative machinery this work added without weakening real
+trust-boundary validation, data-loss prevention, accessibility, or configured
+verification.
+
 ## Verification
 
 After all steps pass, run the project's final automated gate once. If
@@ -111,8 +125,8 @@ Apply configured regular gates:
 - Audit and independent review follow `qualityGates.regular`.
 - Check runs for `always`, for behavioral work under `when-behavioral`, or when
   explicitly requested.
-- Try guide runs for `always`, for user-facing work under `when-user-facing`, or
-  when explicitly requested.
+- `/check guide` follows `qualityGates.regular.tryGuide`: it runs for `always`,
+  for user-facing work under `when-user-facing`, or when explicitly requested.
 
 Do not start a dev server. When a required runtime check needs one, ask the user
 to start it. Build output does not prove visual, persisted-data, authenticated,
@@ -128,19 +142,23 @@ final packet:
 
 1. If `qualityGates.regular.independentReview` does not select review and no
    request already exists, proceed directly to the final review packet.
-2. Otherwise show the exact product, test, and verified-spec candidate for the
-   immutable review checkpoint. Obtain explicit commit approval when the exact
-   checkpoint does not already exist, then create or use it. Configuration,
-   including `review.independentExecution: "automatic"`, never grants commit
-   permission, even when normal checkpoint commits are disabled.
+2. Otherwise show the exact product/test checkpoint candidate and verified spec.
+   Include the spec when tracked; an intentionally ignored spec uses Audit's
+   local `Spec snapshot` contract without changing visibility. Obtain explicit
+   commit approval when the exact checkpoint does not already exist, then create
+   or use it. Configuration, including `review.independentExecution: "automatic"`,
+   never grants commit permission, even when normal checkpoint commits are disabled.
+   A local-spec-only revision may reuse the same approved product HEAD after
+   normal spec and verification gates, with a new snapshot/request and full
+   fresh review. Do not create an empty commit for ignored spec changes.
 3. Follow `/audit independent current` to prepare or reuse the request and record
    `Requested execution`. For requested `automatic`, start and wait for the
    generic isolated current-runtime child instructed from the project-local
    Audit skill, then validate the receipt. For requested `manual`, or when
-   automatic capability is unavailable, preserve the request and stop with the
-   manual fresh-session handoff. Treat an existing request without `Requested
-   execution` as legacy manual-only: never add execution fields or run a
-   subagent against it.
+   automatic capability or access to the same local spec/snapshot is unavailable,
+   preserve the request and stop with the manual fresh-session handoff. Treat an
+   existing request without `Requested execution` as legacy manual-only:
+   never add execution fields or run a subagent against it.
 4. Continue to the final packet only with a current passing receipt whose
    requested execution, actual execution, and reviewer context form an allowed
    pairing. Never self-review or silently skip a selected gate.
@@ -167,7 +185,7 @@ After the final packet, always offer these choices:
 
 The final walkthrough is available with either `workflow.stepReview` value and
 regardless of `workflow.checkpointCommits`. It is a read-only code tour, not the
-manual product-review path produced by `/try`, and it is not verification.
+manual product-review path produced by `/check guide`, and it is not verification.
 
 When the user chooses the walkthrough, begin with a short map of the completed
 feature, then follow the spec's build steps. For each step, explain its purpose,

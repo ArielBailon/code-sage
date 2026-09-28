@@ -41,8 +41,9 @@ Gather the smallest packet that can answer what must be built:
 
 1. Search `blueprint/context/project-overview.md` for the feature number, title,
    and distinctive nouns from the target line. Read the matching feature
-   passage plus only the data-model, stack, UI, security, or deployment passages
-   it directly depends on. Do not read the whole overview by default.
+   passage plus only the usage-model, data-model, stack, UI, security, or
+   deployment passages it directly depends on. Do not read the whole overview
+   by default.
 2. Inspect the repository once, starting from paths named by those passages.
    Follow only relevant imports, callers, tests, schemas, and configuration.
    Batch related searches and reads when supported.
@@ -55,9 +56,12 @@ Gather the smallest packet that can answer what must be built:
 Finish context gathering in at most four tool rounds after this skill starts:
 target and overview matches, one batched repository inspection, applicable
 standards only if needed, and Verify. Combine or skip rounds when possible. Do
-not inspect skill directories, `ai-interaction.md`, findings, review records,
-history, or templates during normal planned-feature work. Do not create scratch
-code or run implementation probes while writing a spec. Put a check in the
+not inspect other skill directories, `ai-interaction.md`, findings, review records,
+or templates during normal planned-feature work. The only history exception is
+this skill's `reference/build-history.md` and the selected feature's archive metadata,
+exact rollback records, and Git evidence needed to freeze its build attempt below;
+batch this with the target lookup, without loading unrelated history. Do not create
+scratch code or run implementation probes while writing a spec. Put a check in the
 relevant build step when a repository detail cannot be confirmed from existing
 evidence.
 
@@ -73,6 +77,15 @@ the simplest repository-native option, record it in the spec, and require a test
 seam when the value is nondeterministic. Planned future persistence alone does
 not make a current in-memory representation a product decision when no stored
 data or external compatibility exists yet.
+
+Apply proportional engineering before drafting: add an abstraction, dependency,
+service, configuration surface, compatibility layer, or security mechanism only
+when an established requirement needs it now. Prefer existing code, the standard
+library, native platform features, and installed dependencies. Unknown scale or
+future extensibility defaults to the smaller reversible design. Treat a trust or
+data-integrity boundary as established when the repository exposes network or
+untrusted input, auth/session/ownership, shared persisted data, destructive
+operations, secrets, or sensitive data, even when the plans do not name it.
 
 If `project-overview.md` is 20,000 bytes or larger, stop and ask for `/overview`
 instead of loading it. If the target is too large for one reviewable branch,
@@ -90,6 +103,12 @@ resume this skill. Bugs and small unplanned changes belong in `/fix`.
 
 ## Write the final spec once
 
+Before review, allocate the selected stable feature ID's build attempt using
+`reference/build-history.md`: first build 1, otherwise one greater than
+the maximum proven prior attempt after all prior builds were reversed. Preserve
+the ID across renamed titles and lettered sub-items. Stop on ambiguous history;
+never infer attempts from a title suffix, file count, or timestamps.
+
 Draft and critique in context, then write
 `blueprint/context/current-feature.md` once. A later write is only for a
 mechanical correction or user-requested revision. Record `**Branch:**` with the
@@ -100,6 +119,7 @@ use this canonical form:
 # Feature: <title>
 
 **From build-plan:** feature <id>
+**Build attempt:** <positive integer>
 ```
 
 Then use these section headings:
@@ -125,15 +145,23 @@ creates the final feature commit.
 The spec must preserve every explicit contract in the feature packet, including
 applicable project-wide UX and security requirements. Do not discard a required
 state because the current fixture cannot trigger it yet. Keep later features out,
-define authorization and tenant boundaries, identify client and server
-responsibilities, and name exact files or areas supported by repository evidence.
+define authorization and tenant boundaries only when the feature packet or
+reachable code establishes them, identify client and server responsibilities,
+and name exact files or areas supported by repository evidence.
 Add focused tests for logic when a test command exists. Add browser coverage only
 when a Browser tests command exists and it is proportionate. Do not claim live,
 visual, persisted-data, or integration evidence that was not run.
 
 Build the branch value from the configured feature prefix plus the feature title
 in lowercase kebab-case. Replace each run of characters other than ASCII letters
-and digits with one hyphen and trim edge hyphens.
+and digits with one hyphen and trim edge hyphens. For attempt N > 1, append
+`--build-N` to that slug before recording the full branch, for example
+`feature/export-reports--build-2`. The reserved double hyphen distinguishes the
+attempt from a title ending in `Build 2`. Before freezing the new spec, check the
+exact archive path and branch availability using `reference/build-history.md`.
+Stop on filesystem entries, existing refs, or prior Git use of that archive path;
+never auto-bump the attempt. Freeze both fields before review; completion and
+resume reuse them rather than allocating again.
 
 For visual replication, require an existing screenshot or reference. Store a
 provided image under `blueprint/reference/` and link it. If `prototypes/` exists,
@@ -147,13 +175,19 @@ Before the single write, check these failure classes:
   that applies to the feature.
 - A product contract from the packet that was omitted, weakened, or contradicted.
 - Scope added from guesswork or pulled forward from a later feature.
+- A proposed abstraction, dependency, service, configuration surface,
+  compatibility layer, or security mechanism lacks a current requirement, or
+  duplicates existing code, the standard library, the platform, or an installed
+  dependency. Untuned stack-specific standards in `coding-standards.md` are not
+  established requirements.
 - An oversized or incorrectly ordered build step.
-- A data or API contract leaves a required type, format or encoding, generator,
-  uniqueness rule, default, lifecycle state, serialization rule, or stable
-  result and error shape for later work to reinterpret.
-- A security-sensitive flow leaves the trusted actor source, repository-first
-  tenant scope, atomic uniqueness or mutation boundary, idempotency, or
-  redaction behavior implicit.
+- When an established persisted-data or external API boundary requires it, the
+  contract leaves a material type, format, encoding, generator, uniqueness rule,
+  default, lifecycle, serialization, or stable result and error shape implicit.
+- When an established security, tenant, concurrency, destructive-operation,
+  payment, or sensitive-data boundary requires it, the trusted actor source,
+  repository-first tenant scope, atomicity, idempotency, or redaction behavior
+  remains implicit.
 - User-controlled text lacks a safe rendering rule, or validation and error
   feedback lacks the relevant label, association, announcement, focus, or
   clearing behavior.

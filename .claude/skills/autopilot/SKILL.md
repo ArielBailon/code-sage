@@ -124,6 +124,7 @@ If there is no active spec:
 
 Autopilot may continue past this spec gate because the user explicitly invoked
 Autopilot. Still report what the critique changed in the final packet.
+Follow the proportional-engineering contract in `AGENTS.md` throughout this run.
 
 ## Step 3 - create or reuse the branch
 
@@ -212,8 +213,10 @@ Check, and the verified spec, before the final review packet and `/complete`.
 `review.independentExecution` chooses the manual fresh-session handoff or an
 automatic isolated reviewer; it does not change when the gate is selected.
 
-When selected, do not review the builder's work in this session. Ensure all work
-is in an approved clean checkpoint, then follow Phase A of
+When selected, do not review the builder's work in this session. Ensure
+application code is in an approved clean checkpoint. Include the verified spec
+when tracked; an intentionally ignored spec uses Audit's local `Spec snapshot`
+contract without changing visibility. Then follow Phase A of
 `/audit independent current`. With automatic execution, spawn and wait for the
 isolated reviewer, then validate its normal receipt. With manual execution, stop
 with the handoff. Autopilot may use its existing configured checkpoint authority
@@ -222,7 +225,12 @@ candidate and ask before committing. On resume, continue only when a fresh
 reviewer wrote a current `passed` receipt. Repair `changes-requested` P0/P1
 findings within the normal scope and attempt limit, then obtain a new checkpoint
 and prepare a new review. A passing independent receipt satisfies the configured
-Audit gate.
+Audit gate. A local-spec-only revision may reuse the same approved product HEAD
+after normal spec and verification gates, with a new snapshot/request and full
+fresh review. Do not create an empty commit for ignored spec changes. Automatic
+execution must also confirm access to the same local spec/snapshot and installed
+skills; otherwise retain the request and use the manual handoff in the original
+checkout.
 
 The request records `Requested execution`; the receipt records `Actual
 execution`. Require the execution and reviewer-context pairing defined by the
@@ -252,8 +260,9 @@ For every finding:
    local project patterns. An audit finding is evidence to investigate, not an
    automatic instruction to edit.
 2. Repair confirmed P0 and P1 findings when the fix stays inside the approved
-   feature scope and does not require a product or architecture decision. Set
-   the repaired finding to `fixed` in the ledger, never `closed`.
+   feature scope, does not require a product or architecture decision, and does
+   not remove or change shipped behavior. Set the repaired finding to `fixed` in
+   the ledger, never `closed`.
 3. Report P2 and P3 findings in the final packet. Fix them only when the change
    is small, directly caused by the current feature, and clearly required by the
    project standards.
@@ -282,9 +291,9 @@ step into a full-project hardening pass. A broader cleanup remains a separate
 
 Apply `qualityGates.regular.tryGuide`:
 
-- `manual` - skip automatic generation; `/try` remains available when explicitly
-  requested.
-- `when-user-facing` - generate the `/try` guide when the change affects UI,
+- `manual` - skip automatic generation; `/check guide` remains available when
+  explicitly requested.
+- `when-user-facing` - run `/check guide` when the change affects UI,
   navigation, copy, a public API or CLI, output, or another workflow a person
   directly uses.
 - `always` - generate a guide for every work item.
@@ -306,7 +315,7 @@ a full audit report:
   skipped
 - independent-review target, selected reviewer and model, and receipt state
 - screenshots or output paths, when relevant
-- how to try it manually, or a pointer to `/try` for the full walkthrough
+- how to try it manually, or a pointer to `/check guide` for the full walkthrough
 - checkpoint commits created
 - self-review findings
 - targeted audit scope and findings, when the audit gate ran
@@ -316,12 +325,12 @@ a full audit report:
 - unresolved risks or skipped checks
 - exact next action
 
-If everything is green, the next action is usually: review the diff, run `/try`
+If everything is green, the next action is usually: review the diff, run `/check guide`
 if its gate was manual and a walkthrough is wanted, then `/complete`.
 
 Always offer a read-only walkthrough of the completed code after the packet.
 Follow the spec's build steps, explain the key files, symbols, flow, and
-non-obvious decisions, then offer a focused deep dive. Keep `/try` distinct as
+non-obvious decisions, then offer a focused deep dive. Keep `/check guide` distinct as
 the manual product-review path.
 
 If something failed, name the failing check and the next fix target.

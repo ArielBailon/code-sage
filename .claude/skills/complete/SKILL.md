@@ -30,6 +30,15 @@ If the file exists but is invalid, stop and point the user to `/doctor`.
 Configuration can strengthen or shape the completion gates, but it never grants
 permission to commit, merge, push, deploy, publish, or take destructive action.
 
+Before requiring a real active spec, check for pending completion using
+`reference/completion-recovery.md`. A matching archive may mean archival was
+interrupted, the work commit awaits merge, or the merge already finished. Follow
+that phase instead of restarting logging. Missing or ambiguous evidence stops
+with concrete recovery steps; a reset stub never authorizes selecting new work.
+Recovery uses archive and Git proof, never dashboard activity as authority.
+
+For a normal completion with no recovery in progress, continue below.
+
 Confirm the work is actually finished: `blueprint/context/current-feature.md`
 holds a real spec, its steps are built on a branch, and `Verify`, or the fallback
 build and tests, passes. Apply the configured regular quality gates below before
@@ -62,18 +71,19 @@ Use `qualityGates.regular` for this work item:
   when a done-when needs observed runtime behavior such as a click, request, CLI
   command, download, background job, or multi-screen flow; `always` runs for
   every work item.
-- **Try guide:** `manual` runs only when explicitly requested;
+- **Try guide (`qualityGates.regular.tryGuide`):** use `/check guide`.
+  `manual` runs only when explicitly requested;
   `when-user-facing` generates a guide when the change affects UI, navigation,
   copy, a public API or CLI, output, or another workflow a person directly uses;
   `always` generates one for every work item.
 
-Apply automatic gates in this order: `/check`, review, then `/try`. When
+Apply automatic gates in this order: `/check`, review, then `/check guide`. When
 independent review is selected, follow the independent execution flow below and
 continue only after a fresh reviewer writes a current passing receipt. Otherwise
 run `/audit current` when Audit is selected.
 Reuse adequate evidence produced during the current work item instead of
-repeating it. A required gate that cannot run is a blocker. `/try` only generates
-instructions for human review; never claim the user performed them. P0 and P1
+repeating it. A required gate that cannot run is a blocker. `/check guide` only
+generates instructions for human review; never claim the user performed them. P0 and P1
 finding blockers remain enforced regardless of these settings.
 
 ### Independent review execution
@@ -83,20 +93,26 @@ If a selected or previously initiated independent review does not already have a
 current passing receipt:
 
 1. Use an existing current pending request and its immutable target when one is
-   present. Otherwise show the exact product, test, and verified-spec candidate
-   for the immutable review checkpoint. Obtain explicit commit approval under
-   the normal Git rules, then create or use that clean checkpoint. Configuration,
+   present. Otherwise show the exact product/test checkpoint candidate and
+   verified spec. Include the spec when tracked; an intentionally ignored spec
+   uses Audit's local `Spec snapshot` contract without changing visibility.
+   Obtain explicit commit approval when the exact checkpoint does not already
+   exist, then create or use it under the normal Git rules. Configuration,
    including `review.independentExecution: "automatic"`, never grants permission
    to commit. A pending request without `Requested execution` is legacy and
    manual-only; never add execution fields or run a subagent against it.
+   A local-spec-only revision may reuse the same approved product HEAD after
+   normal spec and verification gates, with a new snapshot/request and full
+   fresh review. Do not create an empty commit for ignored spec changes.
 2. Prepare Phase A of `/audit independent current` when no current request
    exists. Record `Requested execution` from `review.independentExecution`.
 3. For requested `automatic`, start the generic isolated current-runtime child
    from the installed project-local Audit skill, wait, and validate the normal
    receipt. Freeze parent product, test, spec, and config changes while it runs.
-4. For requested `manual`, or when automatic isolation, identity, model, or
-   completion is unavailable, preserve the pending request, set activity to
-   `ready`, and stop with the manual fresh-session handoff.
+4. For requested `manual`, or when automatic isolation, identity, model,
+   completion, or access to the same local spec/snapshot is unavailable,
+   preserve the pending request, set activity to `ready`, and stop with the
+   manual fresh-session handoff.
 5. Continue Complete only with a current passing receipt whose requested and
    actual execution fields match the allowed review contract. Never self-review
    or silently skip the gate.
@@ -128,13 +144,19 @@ Before logging or committing, run a short safety pass and report blockers only:
   non-empty, and whose target has no later changes except the review and
   findings files. Apply the same checks to any explicit receipt even when the
   configured policy is `manual`. Any mismatch is stale and blocks completion.
+  When `Spec snapshot` is present, also require its exact local bytes, path,
+  visibility, and Git conditions from Audit's reference contract to remain valid.
 - when a passing independent receipt exists, the active spec is already
   `verified` and remains byte-for-byte unchanged through archival
 - if workflow files changed, `.agents` and `.claude` stayed in sync where both
   adapters exist
 - no P0 or P1 finding in `blueprint/context/findings.md` is `open` or `fixed`.
   `fixed` still blocks on purpose: the repair exists but no review has looked at
-  it - run `/audit` to close it. The only waivers are `accepted` (the user's
+  it - run `/audit` to close it. While the current spec is active, append the
+  repair as a new checklist step and run `/implement`; do not start a separate
+  `/fix`. After the repair passes its focused check and the finding is marked
+  `fixed`, run `/audit current` to re-review the updated code, close the finding,
+  and then retry `/complete`. The only waivers are `accepted` (the user's
   explicit decision in the current chat, reason recorded; never set it for
   them) or `invalid` (an `/audit` re-examination verdict with recorded
   evidence, or the user's explicit call). A missing ledger file means no
@@ -152,12 +174,29 @@ owns the final safety pass.
 
 ## Step 1 - log the work
 
+Follow `reference/completion-recovery.md` to capture the source tree and compact
+archive annotation before any logging edits. Preserve the exact verified spec
+prefix, its UTF-8 byte length and SHA-256, branch, original HEAD, and local base.
+Record the reference's narrow `absentOptional` proof before creating any optional
+findings/review stub on an older installation; tree absence alone is insufficient.
+Prepare the entire archive, including the sections below and any generated try
+guide, before placing it at its absent destination. An existing matching archive
+enters recovery; never overwrite it or append duplicate sections.
+
 Check whether the spec is a feature, fix, or rollback. A fix is marked
 `Type: Fix` and has no build-plan number. A rollback is marked `Type: Rollback`
 and records the exact target feature, archive, commit, and parent.
 
-- **Feature** - archive `blueprint/context/current-feature.md` to `blueprint/history/features/NN-name.md`
-  (NN is the build-plan number), and check it off in `blueprint/build-plan.md`
+- **Feature** - use the verified spec's frozen `**Build attempt:**` and stable ID,
+  following `../feature/reference/build-history.md`. Attempt 1 keeps
+  `blueprint/history/features/NN-name.md`; N > 1 uses `NN-name--build-N.md`.
+  Validate the attempt against prior immutable builds and completed reversals;
+  never increment it at completion or resume. For an older active spec without
+  the field, derive 1 only with no prior builds, or derive the next attempt only
+  from unambiguous prior builds and their proven completed reversals. Keep those
+  reviewed spec bytes and the existing branch unchanged; otherwise stop. An
+  existing matching archive and its annotation freeze the recovery destination.
+  Check the feature off in `blueprint/build-plan.md`
   (and its parent item once all sub-items are checked). Then recompute the
   overview fingerprint using `/overview`'s checkbox-normalized hash contract and
   replace only the existing `blueprint:source-hash` value. Do not regenerate or
@@ -166,8 +205,10 @@ and records the exact target feature, archive, commit, and parent.
 - **Fix** - archive it to `blueprint/history/fixes/name.md`. A fix isn't a build-plan item, so
   there's nothing to check off.
 - **Rollback** - archive it to
-  `blueprint/history/rollbacks/YYYY-MM-DD-NN-name.md`, preserving the original
-  completed feature archive. Create `blueprint/history/rollbacks/` first if an
+  `blueprint/history/rollbacks/YYYY-MM-DD-<exact-target-archive-stem>.md`, using the
+  spec's exact `Target archive` filename without `.md`, including any build suffix.
+  Preserve the original completed feature archive. Create
+  `blueprint/history/rollbacks/` first if an
   older Blueprint installation does not have it yet. Uncheck the exact target item in
   `blueprint/build-plan.md` and its parent when applicable, then append a concise
   note to the target line with the rollback date and archive path. Keep the
@@ -176,15 +217,38 @@ and records the exact target feature, archive, commit, and parent.
   plan edit.
 
 **Archive resolved findings.** If `blueprint/context/findings.md` holds any
-findings, append a `## Findings` section to the archive file just written with
+findings, include a `## Findings` section in the prepared archive with
 every `closed`, `accepted`, or `invalid` entry at its final status (`accepted`
-entries keep their recorded reason). Prefix each ID with the archive name for
-global uniqueness: feature 12's `F-03` becomes `12/F-03`; fixes and rollbacks
-use their archive filename as the prefix. An entry carried forward from earlier
-work archives with the item that resolved it; its **Found** line preserves
+entries keep their recorded reason). Prefix feature IDs with the normalized stable
+ID and, for N > 1, `-build-N`: feature 12's first `F-03` becomes `12/F-03`, while
+attempt 2 becomes `12-build-2/F-03`. Derive N from the verified spec/history proof,
+never arbitrary filename text. Fixes and rollbacks use their archive filename as
+the prefix. An entry carried forward from earlier work archives with the item that
+resolved it; its **Found** line preserves
 where it came from. Only `closed`, `accepted`, and `invalid` entries are
 resolved for archival. A `fixed` entry is not resolved at any severity: never
 append it to the archive or remove it from the live ledger.
+
+**Archive independent review.** When a current `passed` receipt exists, include
+a `## Independent review` section in the prepared archive with the receipt fields,
+commands, safe evidence references, findings, and remaining risk from
+`blueprint/context/review.md`. Preserve the full target and base SHAs, spec
+hash, the original `Spec snapshot` field when present, base ref, builder adapter
+and model, requested reviewer, model, and execution, actual reviewer adapter,
+model, and execution, Check result, fresh-context declaration, and review time.
+Do not archive a stale, pending,
+changes-requested, or malformed record.
+
+Validate and place the fully assembled archive first. Complete only the exact
+plan/overview changes above and any approved consumed-prototype cleanup below.
+Read the archive back and confirm that its spec, findings, and review match their
+inputs before resetting live evidence. Reset the active spec last.
+
+**Discard consumed prototypes.** If this feature built the look from `prototypes/`
+- its Design reference pointed there and an early step ported `prototypes/theme.css`
+into the app - delete the `prototypes/` folder now. The tokens live in the real
+stylesheet and the HTML mockups were always throwaway; fold the deletion into this
+feature's commit. Skip this if the feature didn't consume prototypes.
 
 Then remove only the archived entries from the ledger. Entries with `open`,
 `fixed`, or `unverified` status stay in the ledger with their IDs so they are
@@ -203,15 +267,6 @@ same way if the file is missing (an older install):
     > and resets this file.
 
     _No findings recorded. `/audit` appends findings here when it finds them._
-
-**Archive independent review.** When a current `passed` receipt exists, append
-a `## Independent review` section to the archive file with the receipt fields,
-commands, safe evidence references, findings, and remaining risk from
-`blueprint/context/review.md`. Preserve the full target and base SHAs, spec
-hash, base ref, builder adapter and model, requested reviewer, model, and
-execution, actual reviewer adapter, model, and execution, Check result,
-fresh-context declaration, and review time. Do not archive a stale, pending,
-changes-requested, or malformed record.
 
 Then reset `blueprint/context/review.md` to exactly this stub, creating it when
 an older installation does not have it:
@@ -250,25 +305,23 @@ Review stub above.
 Don't commit yet; the next step makes one work commit covering the code and these
 documentation changes. The archive is the build history.
 
-**Discard consumed prototypes.** If this feature built the look from `prototypes/`
-- its Design reference pointed there and an early step ported `prototypes/theme.css`
-into the app - delete the `prototypes/` folder now. The tokens live in the real
-stylesheet and the HTML mockups were always throwaway; fold the deletion into this
-feature's commit. Skip this if the feature didn't consume prototypes.
-
 ## Step 2 - make the work commit
 
-Stage everything on the branch (any uncommitted step work plus the Step 1 logging
-changes) and make one conventional work commit (for example `feat: <feature>`,
+Show the complete product and logging diff with the proposed commit message,
+then obtain explicit commit approval. Only then stage the reviewed branch work
+(any uncommitted step work plus the Step 1 logging changes) and make one conventional work commit (for example `feat: <feature>`,
 `fix: <name>`, or `revert: roll back <feature>`). `Verify`, or the fallback build
 and tests, must pass first.
 
 ## Step 3 - merge
 
-1. Squash-merge the branch into main, only with the user's explicit go-ahead, so
+1. Confirm the recorded local default branch has not advanced and the final work
+   commit is unchanged. Squash-merge into that default branch only with the user's
+   explicit go-ahead, so
    the feature lands as one clean commit regardless of how many checkpoints the
    branch carried.
-2. Delete the branch after a clean merge.
+2. Verify the resulting default-branch commit, parent, archive, and full tree
+   using `reference/completion-recovery.md`, then perform approved branch cleanup.
 3. Stop and ask whether to push local `main` to its upstream. The merge approval
    does not count as push approval.
 4. Push main only after a separate explicit yes to push main in the current chat.
@@ -279,7 +332,7 @@ Then point the user at `/feature`, `/fix`, or `/rollback` for the next thing.
 Finish with a concise **How to try it** note for the completed work. For a
 rollback, explain how to confirm the removed behavior is gone and name one
 unaffected regression path. If the
-manual path is more than a couple of steps, tell the user to run `/try latest`;
+manual path is more than a couple of steps, tell the user to run `/check guide latest`;
 that command can read the archived feature after `current-feature.md` is reset.
 
 ## Rules
