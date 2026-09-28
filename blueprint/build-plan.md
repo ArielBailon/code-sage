@@ -15,7 +15,7 @@
 
 <!-- Fase 2 - RAG end to end (ver blueprint/roadmap.md) -->
 
-- [ ] 6. **Ingesta y chunking especializado** - clona un repositorio open
+- [x] 6. **Ingesta y chunking especializado** - clona un repositorio open
       source real (5k+ líneas de código + documentación) e implementa
       chunking por función/clase para código vs. chunking semántico para
       documentación, documentando la diferencia de estrategia
@@ -23,7 +23,7 @@
         `chunks`, walker que clasifica archivos de código vs. documentación
         en un repo local, y persistencia mínima con un chunker placeholder
         (archivo completo) para validar el pipeline de punta a punta
-  - [ ] 6b. **Chunking especializado** - reemplaza el placeholder por los
+  - [x] 6b. **Chunking especializado** - reemplaza el placeholder por los
         dos chunkers reales: AST de Python por función/clase para código, y
         chunking semántico por secciones para documentación; documenta la
         diferencia de estrategia
